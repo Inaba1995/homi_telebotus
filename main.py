@@ -7,29 +7,40 @@ import random
 from gtts import gTTS
 import os
 from googletrans import Translator
+translator = Translator()
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 
-
-@dp.message()
-async def reply (message: Message):
-    ms = "Бу! Испугался? Не бойся! Я всего лишь бот, способный сохранять твои фоточки и переводить твой текст на инглиш!"
-    mss= ms
-    await message.answer(f"{mss}")
-
-    tts = gTTS(text=mss, lang='ru')
-    tts.save("reply.mp3")
-    audio = FSInputFile('reply.mp3')
-    await bot.send_audio(message.chat.id, audio)
-    os.remove("reply.mp3")
-
-
-
 @dp. message(CommandStart())
 async def start(message: Message):
     await message.answer(f"Привет, {message.from_user.first_name}, гони свои фоточки, будем сохранять! А так же переводить твою белиберду на инглишь!")
+
+
+@dp.message(F.text & ~Command())
+async def reply(message: Message):
+    user_text = message.text
+
+    try:
+        translation = translator.translate(user_text, src='ru', dest='en')
+        translated_text = translation.text
+    except Exception as e:
+        translated_text = f"Ошибка перевода: {e}"
+
+
+    response_text = (
+        f"🗣 Ваш текст: {user_text}\n\n"
+        f"🇬🇧 Перевод на английский: {translated_text}"
+    )
+
+    await message.answer(response_text)
+
+    tts = gTTS(text=translated_text, lang='en')
+    tts.save("reply.ogg")
+    audio = FSInputFile('reply.ogg')
+    await bot.send_voice(chat_id=message.chat.id, voice=audio)
+    os.remove("reply.ogg")
 
 @dp. message(F.photo)
 async def save_photo(message: Message):
